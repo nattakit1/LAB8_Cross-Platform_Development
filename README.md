@@ -4,7 +4,12 @@
 <img width="970" height="803" alt="image" src="https://github.com/user-attachments/assets/31d5885c-7881-4331-8c4d-4ae11e25b3db" />
 
 #lab8-2
-<img width="1908" height="1034" alt="image" src="https://github.com/user-attachments/assets/815d54d9-3bb5-4b20-8b4e-92aa69819a9e" />
+<img width="988" height="898" alt="image" src="https://github.com/user-attachments/assets/f0e80312-d2c5-41d1-8f50-e151246f2715" />
+
+<img width="464" height="480" alt="image" src="https://github.com/user-attachments/assets/76d6d28d-e842-40a8-9785-91edab867bb1" />
+
+<img width="935" height="420" alt="image" src="https://github.com/user-attachments/assets/97e5c963-43c0-4c11-ac50-5258d68bae6e" />
+
 
 
 #lab8-3
