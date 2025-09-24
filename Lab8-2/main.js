@@ -132,4 +132,25 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
+
+ipcMain.handle('change-agent-status', async (event, { agentId, newStatus }) => {
+    const filePath = path.join(__dirname, 'agent-data.json');
+    const dataRaw = await fs.readFile(filePath, 'utf8');
+    const agentData = JSON.parse(dataRaw);
+
+    const agent = agentData.agents.find(a => a.id === agentId);
+    agent.status = newStatus;
+    agent.lastStatusChange = new Date().toISOString();
+
+    await fs.writeFile(filePath, JSON.stringify(agentData, null, 2));
+
+    // ส่ง event กลับทุก window (Notification)
+    BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('agent-status-updated', { agent, statistics: agentData.statistics });
+    });
+
+    return { success: true, agent, message: `เปลี่ยนสถานะเป็น ${newStatus} แล้ว`, statistics: agentData.statistics };
+});
+
+
 });

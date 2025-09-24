@@ -1,20 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-console.log('🌉 [PRELOAD] กำลังตั้งค่า security bridge...');
-
-// ✅ เปิดเผย APIs ที่ปลอดภัยให้ Renderer ใช้
 contextBridge.exposeInMainWorld('electronAPI', {
-  // 📤 ส่งข้อความไป Main Process
-  sendMessage: (message) => {
-    console.log('📤 [PRELOAD] ส่งข้อความ:', message);
-    return ipcRenderer.invoke('send-message', message);
-  },
-  
-  // 👋 Hello function ทดสอบ
-  sayHello: (name) => {
-    console.log('👋 [PRELOAD] ส่งคำทักทาย:', name);
-    return ipcRenderer.invoke('say-hello', name);
-  }
+  sendMessage: (msg) => ipcRenderer.invoke('send-message', msg),
+  sayHello: (name) => ipcRenderer.invoke('say-hello', name),
+  authenticate: (creds) => ipcRenderer.invoke('authenticate', creds),
+  changeAgentStatus: (data) => ipcRenderer.invoke('change-agent-status', data),
+  onAgentStatusUpdated: (callback) => ipcRenderer.on('agent-status-updated', (event, data) => callback(data))
 });
-
-console.log('✅ [PRELOAD] Security bridge พร้อมแล้ว');
