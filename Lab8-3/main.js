@@ -35,9 +35,9 @@ function createWindow() {
   });
 }
 
-// ===== FILE SYSTEM APIS =====
+// ===== FILE SYSTEM =====
 ipcMain.handle('open-file', async () => {
-    console.log('📂 [MAIN] เปิด file dialog...');
+  console.log('📂 [MAIN] เปิด file dialog...');
   try {
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openFile'],
@@ -50,19 +50,20 @@ ipcMain.handle('open-file', async () => {
     if (!result.canceled && result.filePaths[0]) {
       const filePath = result.filePaths[0];
       const content = await fs.readFile(filePath, 'utf8');
-      console.log('✅ [MAIN] อ่านไฟล์สำเร็จ:', path.basename(filePath));
+      console.log(`[LOG] เปิดไฟล์: ${path.basename(filePath)} (${content.length} chars)`);
       return { success: true, fileName: path.basename(filePath), filePath, content, size: content.length };
     }
 
     return { success: false, cancelled: true };
   } catch (error) {
+    console.error(error);
     return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle('save-file', async (event, { content, fileName = 'export.txt' }) => {
   console.log('💾 [MAIN] บันทึกไฟล์...');
-    try {
+  try {
     const result = await dialog.showSaveDialog(mainWindow, {
       defaultPath: fileName,
       filters: [
@@ -74,17 +75,18 @@ ipcMain.handle('save-file', async (event, { content, fileName = 'export.txt' }) 
 
     if (!result.canceled && result.filePath) {
       await fs.writeFile(result.filePath, content, 'utf8');
-      console.log('✅ [MAIN] บันทึกสำเร็จ:', path.basename(result.filePath));
+      console.log(`[LOG] บันทึกไฟล์: ${path.basename(result.filePath)} (${content.length} chars)`);
       return { success: true, fileName: path.basename(result.filePath), filePath: result.filePath };
     }
 
     return { success: false, cancelled: true };
   } catch (error) {
+    console.error(error);
     return { success: false, error: error.message };
   }
 });
 
-// ===== NOTIFICATION APIS =====
+// ===== NOTIFICATIONS =====
 ipcMain.handle('show-notification', (event, { title, body, urgent = false }) => {
   try {
     const notification = new Notification({
@@ -100,34 +102,46 @@ ipcMain.handle('show-notification', (event, { title, body, urgent = false }) => 
       mainWindow.show();
       mainWindow.focus();
     });
+
+    console.log(`[NOTIFICATION] ${title} - ${body}`);
     return { success: true };
   } catch (error) {
+    console.error(error);
     return { success: false, error: error.message };
   }
 });
 
-ipcMain.handle('notify-agent-event', (event, { agentName, eventType, details }) => {
-  const eventMessages = {
-    'login': `🟢 ${agentName} เข้าสู่ระบบแล้ว`,
-    'logout': `🔴 ${agentName} ออกจากระบบแล้ว`,
-    'status_change': `🔄 ${agentName} เปลี่ยนสถานะเป็น ${details.newStatus}`,
-    'call_received': `📞 ${agentName} รับสายใหม่`,
-    'call_ended': `📞 ${agentName} จบการโทร (${details.duration} วินาที)`
-  };
+ipcMain.handle('notify-agent-event', (event, { agentName, eventType, details = {} }) => {
+  if (eventType === 'log') {
+    console.log(`[LOG] ${details.message}`);
+    return { success: true };
+  }
 
-  const notification = new Notification({
-    title: 'Agent Wallboard Update',
-    body: eventMessages[eventType] || `📊 ${agentName}: ${eventType}`,
-    icon: path.join(__dirname, 'assets', 'notification.png')
-  });
+  try {
+    const messages = {
+      'login': `🟢 ${agentName} เข้าสู่ระบบแล้ว`,
+      'logout': `🔴 ${agentName} ออกจากระบบแล้ว`,
+      'status_change': `🔄 ${agentName} เปลี่ยนสถานะเป็น ${details.newStatus || 'Unknown'}`,
+      'call_received': `📞 ${agentName} มีสายใหม่`,
+      'call_ended': `📞 ${agentName} จบการโทร (${details.duration || '?'} วินาที)`
+    };
 
-  notification.show();
-  notification.on('click', () => {
-    mainWindow.show();
-    mainWindow.focus();
-  });
+    const msg = messages[eventType] || `📊 ${agentName}: ${eventType}`;
 
-  return { success: true };
+    const notification = new Notification({
+      title: 'Agent Wallboard',
+      body: msg,
+      icon: path.join(__dirname, 'assets', 'notification.png')
+    });
+    notification.show();
+    notification.on('click', () => { mainWindow.show(); mainWindow.focus(); });
+
+    console.log(`[NOTIFICATION] ${msg}`);
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { success: false, error: error.message };
+  }
 });
 
 // ===== SYSTEM TRAY =====
@@ -173,17 +187,13 @@ function createTray() {
 function changeAgentStatusFromTray(status) {
   mainWindow.webContents.send('status-changed-from-tray', { newStatus: status, timestamp: new Date().toISOString() });
   new Notification({ title: 'สถานะเปลี่ยนแล้ว', body: `เปลี่ยนสถานะเป็น ${status} แล้ว`, icon: path.join(__dirname, 'assets', 'notification.png') }).show();
+  console.log(`[LOG] เปลี่ยนสถานะจาก tray: ${status}`);
 }
 
 // ===== APP LIFECYCLE =====
 app.whenReady().then(() => createWindow());
-
-app.on('activate', () => {
-  if (!mainWindow) createWindow();
-  else mainWindow.show();
-});
-
-app.on('window-all-closed', () => {});
+app.on('activate', () => { if (!mainWindow) createWindow(); else mainWindow.show(); });
+app.on('window-all-closed', () => { });
 app.on('before-quit', () => { app.isQuiting = true; });
 
 // IPC Events for tray
